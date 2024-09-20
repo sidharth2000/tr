@@ -1,0 +1,166 @@
+def extract_class_methods(java_code):
+    function_declarations = []
+    try:
+        tree = javalang.parse.parse(java_code)
+        for path, node in tree:
+            if isinstance(node, javalang.tree.MethodDeclaration):
+                method_name = node.name
+                function_declarations.append(method_name)
+    except Exception as e:
+       pass
+    return function_declarations
+
+def extract_class_relations(java_code):
+    tree = javalang.parse.parse(java_code)
+    for _, node in tree:
+        if isinstance(node, javalang.tree.ClassDeclaration):
+            try:
+                interfaces = [iface.name for iface in node.implements] if node.implements else []
+                super_classes = [sclass.name for sclass in node.extends] if node.extends else []
+                return (interfaces,super_classes)
+            except Exception as e:
+                print(e)
+                pass
+				
+				
+for index, row in combined_df.iterrows():
+    try:
+        if row['type'] == 'CLASS':
+            methods = []
+            print(f"Getting metadata of: {row['type']} {row['name']}")
+            
+            try:
+                class_methods = extract_class_methods(row['code'])
+            except Exception as e:
+                print(f"Error extracting methods for {row['name']}: {str(e)}")
+                class_methods = []
+
+            file_name = row['file_name']
+            
+            for class_method in class_methods:
+                try:
+                    mask = (
+                        (combined_df['name'] == class_method) &
+                        (combined_df['file_name'] == file_name)
+                    )
+                    match = combined_df[mask]
+                    if not match.empty:
+                        first_match = match.iloc[0]
+                        methods.append(first_match['id'])
+                except Exception as e:
+                    print(f"Error processing method {class_method}: {str(e)}")
+
+            try:
+                interfaces, super_classes = extract_class_relations(row['code'])
+            except Exception as e:
+                print(f"Error extracting class relations for {row['name']}: {str(e)}")
+                interfaces, super_classes = [], []
+
+            interface_ids = []
+            superclass_ids = []
+
+            for interface in interfaces:
+                try:
+                    mask = (
+                        (combined_df['name'] == interface) &
+                        (combined_df['type'] == 'INTERFACE')
+                    )
+                    match = combined_df[mask]
+                    if not match.empty:
+                        first_match = match.iloc[0]
+                        interface_ids.append(first_match['id'])
+                except Exception as e:
+                    print(f"Error processing interface {interface}: {str(e)}")
+            
+            for superclass in super_classes:
+                try:
+                    mask = (
+                        (combined_df['name'] == superclass) &
+                        (combined_df['type'] == 'CLASS')
+                    )
+                    match = combined_df[mask]
+                    if not match.empty:
+                        first_match = match.iloc[0]
+                        superclass_ids.append(first_match['id'])
+                except Exception as e:
+                    print(f"Error processing superclass {superclass}: {str(e)}")
+
+            combined_df.at[index, 'meta_data'] = {
+                'methods': methods,
+                'interface_implemented': interface_ids,
+                'classes_extended': superclass_ids
+            }
+    except Exception as e:
+        print(f"Error processing row {index}: {str(e)}")
+
+
+
+for index, row in combined_df.iterrows():
+    if row['type'] == 'INTERFACE':
+        methods = []
+        print('GETTING METADATA OF :', row['type'],row['name'], )
+        class_methods = extract_class_methods(row['code'])
+        file_name = row['file_name']
+        
+        for class_method in class_methods:
+            mask = (
+                (combined_df['name'] == class_method) &
+                (combined_df['file_name'] == file_name)
+            )
+            match = combined_df[mask]
+            if not match.empty:
+                first_match = match.iloc[0]
+                methods.append(first_match['id'])
+        combined_df.at[index, 'meta_data'] = {
+            'methods': methods
+        }
+        
+		
+for _, interface_row in combined_df.iterrows():
+    if interface_row['type'] == 'INTERFACE':
+        interface_id = interface_row['id']
+        print('LINKING METHOD IMPLEMENTATIONS OF INTERFACE:', interface_row['name'], interface_id)
+        
+        interface_methods = combined_df[combined_df['id'] == interface_id]['meta_data'].values[0]['methods']
+        implementing_class = []
+        
+        for _, class_row in combined_df.iterrows():
+            if class_row['type'] == 'CLASS':
+                # Check if 'meta_data' exists and is a dictionary
+                if isinstance(class_row.get('meta_data'), dict) and 'interface_implemented' in class_row['meta_data']:
+                    if interface_id in class_row['meta_data']['interface_implemented']:
+                        implementing_class.append(class_row['id'])
+        print(implementing_class)
+        
+        implementing_methods = []
+        if len(implementing_class) != 0:
+            for class_id in implementing_class:
+                print(class_id)
+                meta_data = combined_df[combined_df['id'] == class_id]['meta_data'].values[0]
+                print(meta_data)
+                methods_value = meta_data.get('methods', [])
+                print(methods_value)
+                implementing_methods.extend(methods_value)
+        else:
+            print('NO CLASS IMPLEMENTS')
+            continue
+        print('--',implementing_methods)
+        
+        for interface_method_id in interface_methods:
+            methods_implementing = []
+            method_name = combined_df[combined_df['id'] == interface_method_id]['name'].values[0]
+            print('FINDING IMPLEMENTATION OF:', method_name)
+            print(implementing_methods)
+            for implementing_method in implementing_methods:
+                impl_method_name = combined_df[combined_df['id'] == implementing_method]['name'].values[0]
+                print('-',impl_method_name)
+                if impl_method_name == method_name:
+                    methods_implementing.append(implementing_method)
+            print(methods_implementing)
+            
+            row = combined_df.loc[combined_df['id'] == interface_method_id]
+            if not row.empty:
+                index = row.index[0]
+                current_meta_data = combined_df.at[index, 'meta_data']
+                current_meta_data['methods_implementing'] = methods_implementing
+                combined_df.at[index, 'meta_data'] = current_meta_data
