@@ -164,3 +164,45 @@ for _, interface_row in combined_df.iterrows():
                 current_meta_data = combined_df.at[index, 'meta_data']
                 current_meta_data['methods_implementing'] = methods_implementing
                 combined_df.at[index, 'meta_data'] = current_meta_data
+
+
+
+def get_total_code(df, start_id):
+    """
+    Recursively fetches the total code for the given start_id.
+    
+    Parameters:
+    df (pd.DataFrame): The DataFrame containing the mapping information.
+    start_id (int): The ID of the starting row.
+    
+    Returns:
+    str: The concatenated code.
+    """
+    # Base case: if the start_id is not in the DataFrame, return an empty string
+    if start_id not in df['id'].values:
+        return ""
+    
+    # Fetch the row with the given start_id
+    row = df[df['id'] == start_id].iloc[0]
+    
+    # If the row type is not 'API', 'CLASS', 'INTERFACE', or 'FUNCTION', return an empty string
+    if row['type'] not in ['API', 'CLASS', 'INTERFACE', 'FUNCTION']:
+        return ""
+    
+    total_code = row['code']
+    
+    # Try to parse the meta_data as a dictionary
+    try:
+        metadata = ast.literal_eval(row['meta_data']) if row['meta_data'] else {}
+        
+        # Recursively fetch the code from referenced methods
+        for key in ['methods_called', 'methods_implementing']:
+            if key in metadata and isinstance(metadata[key], list):
+                for method_id in metadata[key]:
+                    total_code += get_total_code(df, method_id)
+    except (ValueError, SyntaxError):
+        # If the meta_data is not a valid dictionary, return the code for the current row
+        pass
+    
+    return total_code
+
