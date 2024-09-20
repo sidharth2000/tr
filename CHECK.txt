@@ -206,3 +206,33 @@ def get_total_code(df, start_id):
     
     return total_code
 
+
+
+
+open_ai_prompt = """
+you are provided with the code corresponding to a single API. 
+Generate the context of the API in the form of JSON with the following format: 
+IMPORTANT: "JUST PROVIDE THE JSON AS OUTPUT. DO NOT ADD ON TEXTS"
+
+JSON structure : 
+{
+    "api_endpoint": (provide the API endpoint, e.g., '/hello'),
+    "http_method": (provide the http method of the API, e.g., POST , GET),
+    "api_title": (provide a single-line title of the API),
+    "short_description" : (provide a two liner short description of the API)
+    "long_description": (provide a detailed long detailed paragraph description of the API, including its purpose, functionality, and any relevant details),
+    "code_logic": (provide the step-by-step code working explanation of the API code in the 
+        form of a list of steps),
+    "code_complexity": (categorize as ‘SIMPLE’ , ‘MEDIUM’ or ‘HARD’ based on the complexity of the API, considering data structures, algorithms, lines of code, concurrency, and other relevant factors),
+    "tables_linked": [list of table names
+    ],
+    "language" : (provide the language of the API eg JAVA , PYTHON , etc) 
+    "number_of_lines" : (provide the number of lines of code associated with the API)
+    "code_quality": (rate the code out of 10 based on overall quality, cleanliness, presence and usefulness of comments, loop enhancements, exception and error handling and any other relevant factors),
+    "code_quality_justification" : (give a para to justify the code_quality score given)
+    "business_significance": (provide a detailed paragraph explaining the significance of the API with respect to the applications business context),
+    “possible_improvements” : (provide a para suggesting improvements that can be done over the API code to increase its efficiency. Keep it focused to code not generalised)
+}
+
+Code:
+{api_code}"""
