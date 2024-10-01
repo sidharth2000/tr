@@ -1,0 +1,60 @@
+.main{
+    height: 100%;
+    width: 100%;
+    background-color: rgb(213, 212, 255);
+}
+
+
+.header{
+    height: 50px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.headerText{
+    font-size: 30px;
+}
+
+.view{
+    height: calc(100% - 50px);
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.firstRow{
+    height: 20%;
+    display: flex;
+}
+
+.secondRow{
+    height: 30%;
+    display: flex;
+}
+
+.thirdRow{
+    height: 50%;
+    display: flex;
+}
+
+.widget{
+    width: 100%;
+    margin: 5px;
+    background-color: white;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.widgetHeader{
+    font-size: 13px;
+    font-weight: bold;
+    height: 20px;
+    background-color: beige;
+    display: flex;
+    align-items: center;
+    padding-left: 2px;
+}
+
+.widgetContent{
+    height: 90%;
+    font-size: 13px;
+}
