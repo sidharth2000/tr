@@ -236,3 +236,23 @@ JSON structure :
 
 Code:
 {api_code}"""
+
+
+useEffect(() => {
+    let start = 0;
+    const endValue = parseInt(end, 10);
+    const increment = endValue / (duration / 10); // Increase the count every 10ms
+
+    const counter = setInterval(() => {
+      start += increment;
+      if (start >= endValue) {
+        clearInterval(counter);
+        setCount(endValue);
+      } else {
+        setCount(Math.floor(start));
+      }
+    }, 10);
+
+    return () => clearInterval(counter); // Cleanup on unmount
+  }, [end, duration]);
+
