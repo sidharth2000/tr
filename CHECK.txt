@@ -256,3 +256,42 @@ useEffect(() => {
     return () => clearInterval(counter); // Cleanup on unmount
   }, [end, duration]);
 
+
+
+import React, { useState, useEffect } from 'react';
+
+const Counter = ({ end, duration = 2000 }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const endValue = Number(end);
+    if (isNaN(endValue) || endValue <= 0) return;
+
+    const startTime = performance.now();
+
+    const updateCounter = (currentTime) => {
+      const elapsedTime = currentTime - startTime;
+      const progress = Math.min(elapsedTime / duration, 1); // Ensure the progress is between 0 and 1
+
+      // Calculate the current count value
+      setCount(Math.floor(progress * endValue));
+
+      // If the progress is less than 1, keep animating
+      if (progress < 1) {
+        requestAnimationFrame(updateCounter);
+      }
+    };
+
+    requestAnimationFrame(updateCounter);
+
+    return () => {
+      setCount(0); // Cleanup if the component unmounts
+    };
+  }, [end, duration]);
+
+  return <span>{count}</span>;
+};
+
+export default Counter;
+
+
