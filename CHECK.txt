@@ -295,3 +295,63 @@ const Counter = ({ end, duration = 2000 }) => {
 export default Counter;
 
 
+
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.responses import JSONResponse
+import shutil
+import zipfile
+import os
+
+app = FastAPI()
+
+@app.post("/upload-zip/")
+async def upload_zip(
+    file: UploadFile = File(...),
+    app_name: str = Form(...)
+):
+    if not file.filename.endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Invalid file format. Only .zip files are allowed.")
+    
+    # Define the base TEMP directory relative to the current working directory
+    base_temp_dir = os.path.join(".", "TEMP")
+    
+    # Ensure the TEMP folder exists; if not, create it
+    os.makedirs(base_temp_dir, exist_ok=True)
+    
+    # Create a specific folder for the zip extraction using the `app_name`
+    temp_dir = os.path.join(base_temp_dir, app_name)
+    
+    # Ensure the folder for the app_name exists; if not, create it
+    os.makedirs(temp_dir, exist_ok=True)
+
+    try:
+        # Write the uploaded zip file to the temporary directory
+        zip_path = os.path.join(temp_dir, file.filename)
+        with open(zip_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        # Extract the zip file contents into the named temporary folder
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(temp_dir)
+
+        # Do something with the extracted files here
+        # For example, list the files extracted
+        extracted_files = os.listdir(temp_dir)
+
+        # Return the list of files as a JSON response along with the app_name
+        return JSONResponse(content={
+            "app_name": app_name,
+            "extracted_files": extracted_files,
+            "extracted_to": temp_dir
+        })
+    
+    except zipfile.BadZipFile:
+        raise HTTPException(status_code=400, detail="The file is not a valid zip archive.")
+
+    finally:
+        # Clean up the temporary directory and its contents after processing
+        shutil.rmtree(temp_dir)
+
+# To run the FastAPI app, use: uvicorn main:app --reload
+
+
