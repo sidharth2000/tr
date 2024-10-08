@@ -355,3 +355,76 @@ async def upload_zip(
 # To run the FastAPI app, use: uvicorn main:app --reload
 
 
+from fastapi import FastAPI
+from apscheduler.schedulers.background import BackgroundScheduler
+from concurrent.futures import ThreadPoolExecutor
+import time
+import random
+import threading
+
+app = FastAPI()
+
+# Initialize the scheduler
+scheduler = BackgroundScheduler()
+
+# Create a ThreadPoolExecutor with a maximum of 4 threads
+max_workers = 4
+executor = ThreadPoolExecutor(max_workers=max_workers)
+
+# A lock to prevent race conditions while checking running threads
+lock = threading.Lock()
+
+# To keep track of active threads
+active_threads = 0
+
+# Define a long-running task
+def long_running_task(task_id):
+    global active_threads
+    with lock:
+        active_threads += 1
+    print(f"Task {task_id} started. Active threads: {active_threads}")
+
+    # Simulating a long-running task with sleep
+    duration = random.randint(5, 10)  # Random duration between 5 and 10 seconds
+    time.sleep(duration)
+
+    with lock:
+        active_threads -= 1
+    print(f"Task {task_id} completed. Active threads: {active_threads}")
+
+# Scheduler function to check and add tasks to the thread pool
+def process_service():
+    global active_threads
+    print("Checking for available threads...")
+
+    with lock:
+        available_threads = max_workers - active_threads
+
+    if available_threads > 0:
+        for _ in range(min(available_threads, 4)):
+            task_id = random.randint(1, 100)  # Generate a random task ID
+            executor.submit(long_running_task, task_id)
+
+@app.on_event("startup")
+def start_scheduler():
+    # Start the scheduler to run the process_service every 5 minutes
+    scheduler.add_job(process_service, 'interval', minutes=5)
+    scheduler.start()
+    print("Scheduler started.")
+
+@app.on_event("shutdown")
+def shutdown_event():
+    # Shut down the scheduler and executor when the app is shutting down
+    scheduler.shutdown()
+    executor.shutdown()
+    print("Scheduler stopped.")
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello, World!"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+
+
