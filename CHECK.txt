@@ -80,3 +80,6 @@ def model_to_dict(model):
 postgres_session.execute(
                 User.__table__.insert().values(user_data).prefix_with('your_schema_name.')
             )
+
+SELECT setval('your_table_name_id_seq', (SELECT MAX(id) FROM your_table_name));
+
