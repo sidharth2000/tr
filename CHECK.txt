@@ -74,5 +74,7 @@ if __name__ == "__main__":
  user_data = vars(user).copy()
             user_data.pop('_sa_instance_state', None)  # Remove SQLAlchemy's internal state
             user_data.pop('id', None)
+def model_to_dict(model):
+    return {c.key: getattr(model, c.key) for c in inspect(model).mapper.column_attrs}
 
 
