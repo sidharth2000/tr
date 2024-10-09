@@ -77,4 +77,6 @@ if __name__ == "__main__":
 def model_to_dict(model):
     return {c.key: getattr(model, c.key) for c in inspect(model).mapper.column_attrs}
 
-
+postgres_session.execute(
+                User.__table__.insert().values(user_data).prefix_with('your_schema_name.')
+            )
