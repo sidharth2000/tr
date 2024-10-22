@@ -90,5 +90,28 @@ SELECT setval('your_table_name_id_seq', (SELECT MAX(id) FROM your_table_name));
 \b[A-Z][a-zA-Z]*\b
 
 
+brace_count = 0
+    paren_count = 0
+    in_method = False
+
+    for i in range(start_line_index, len(file_content)):
+        line = file_content[i].strip()
+        method_code.append(file_content[i])  # Always append the line
+
+        # Count parentheses and braces
+        paren_count += line.count('(') - line.count(')')
+        brace_count += line.count('{') - line.count('}')
+        
+        # Start recording the method body after the first opening brace
+        if "{" in line and not in_method and paren_count == 0:
+            in_method = True
+        
+        # If we've found the matching closing brace, stop
+        if in_method and brace_count == 0:
+            break
+
+    return method_code
+
+
 
 
