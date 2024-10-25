@@ -1,132 +1,39 @@
-from sqlalchemy import create_engine, Column, Integer, String, MetaData, Table
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-import logging
+digraph G {
+    rankdir=TB; // Invert the tree direction
+    nodesep=0.1
+    ranksep=0.5
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+    // General styling
+    node [shape=box, style="filled,rounded", color=lightblue];
+    
+    // Root node
+    root [label="Root"];
 
-# Define the base for the models
-Base = declarative_base()
+    // First level of children
+    child1 [label="Child 1"];
+    child2 [label="Child 2"];
+    child3 [label="Child 3"];
+    child4 [label="Child 4"];
+    child5 [label="Child 5"];
 
-# Define the model class for your table (adjust as needed)
-class User(Base):
-    __tablename__ = 'users'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(50), nullable=False)
-    email = Column(String(100), nullable=False)
+    // Second level of children
+    grandchild1 [label="Grandchild 1"];
+    grandchild2 [label="Grandchild 2"];
+    grandchild3 [label="Grandchild 3"];
+    grandchild4 [label="Grandchild 4"];
+    grandchild5 [label="Grandchild 5"];
 
-# Database connection strings
-mariadb_engine = create_engine(
-    "mysql+mysqlconnector://mariadb_user:mariadb_password@localhost/mariadb_database"
-)
-postgresql_engine = create_engine(
-    "postgresql+psycopg2://postgres_user:postgres_password@localhost/postgres_database"
-)
+    // Connecting root to first level of children
+    root -> child1;
+    root -> child2;
+    root -> child3;
+    root -> child4;
+    root -> child5;
 
-# Create session factories
-MariaDBSession = sessionmaker(bind=mariadb_engine)
-PostgresSession = sessionmaker(bind=postgresql_engine)
-
-# Create tables in PostgreSQL if they do not exist
-Base.metadata.create_all(postgresql_engine)
-
-# Copy data row by row
-def migrate_data():
-    # Start a session for MariaDB and PostgreSQL
-    mariadb_session = MariaDBSession()
-    postgres_session = PostgresSession()
-
-    try:
-        # Query all records from the MariaDB table
-        logging.info("Querying records from MariaDB...")
-        users = mariadb_session.query(User).all()
-
-        logging.info(f"Fetched {len(users)} records from MariaDB.")
-
-        for user in users:
-            # Create a new User instance for PostgreSQL
-            new_user = User(
-                username=user.username,
-                email=user.email
-            )
-
-            # Add the new user to the PostgreSQL session
-            postgres_session.add(new_user)
-
-        # Commit all records to PostgreSQL
-        postgres_session.commit()
-        logging.info("Data migrated successfully to PostgreSQL.")
-
-    except Exception as e:
-        logging.error(f"An error occurred during migration: {e}")
-        postgres_session.rollback()
-    finally:
-        # Close both sessions
-        mariadb_session.close()
-        postgres_session.close()
-
-# Run the migration
-if __name__ == "__main__":
-    migrate_data()
-
-
- user_data = vars(user).copy()
-            user_data.pop('_sa_instance_state', None)  # Remove SQLAlchemy's internal state
-            user_data.pop('id', None)
-def model_to_dict(model):
-    return {c.key: getattr(model, c.key) for c in inspect(model).mapper.column_attrs}
-
-postgres_session.execute(
-                User.__table__.insert().values(user_data).prefix_with('your_schema_name.')
-            )
-
-SELECT setval('your_table_name_id_seq', (SELECT MAX(id) FROM your_table_name));
-
-
-\b([A-Z][a-zA-Z0-9_]*)\s+([a-zA-Z_][a-zA-Z0-9_]*)\b
-\b([A-Z][a-zA-Z0-9_]*)\s+([a-zA-Z_][a-zA-Z0-9_]*)\b
-
-\b[A-Z][a-zA-Z]*\b
-
-
-brace_count = 0
-    paren_count = 0
-    in_method = False
-
-    for i in range(start_line_index, len(file_content)):
-        line = file_content[i].strip()
-        method_code.append(file_content[i])  # Always append the line
-
-        # Count parentheses and braces
-        paren_count += line.count('(') - line.count(')')
-        brace_count += line.count('{') - line.count('}')
-        
-        # Start recording the method body after the first opening brace
-        if "{" in line and not in_method and paren_count == 0:
-            in_method = True
-        
-        # If we've found the matching closing brace, stop
-        if in_method and brace_count == 0:
-            break
-
-    return method_code
-
-You are an advanced AI assistant specialized in generating detailed algorithms from API code. Based on the code provided for a single API, generate a step-by-step algorithm in numbered format, correlating and summarizing the entire logic.
-
-Provide a detailed explanation in a numbered list format (e.g., 1, 1.1, 1.2).
-
-Do not include code snippets in the explanation.
-
-Summarize the logic across all code pieces (do not explain each code piece individually).
-
-Mention:
-
-Key objects and attributes.
-All logic, calculations, and conditionals.
-Any database operations, including table names.
-Use simple English to clearly explain the algorithm without delving into low-level code.
-
-
-
-
+    // Connecting each child to its respective grandchild
+    child1 -> grandchild1;
+    child2 -> grandchild2;
+    child3 -> grandchild3;
+    child4 -> grandchild4;
+    child5 -> grandchild5;
+}
