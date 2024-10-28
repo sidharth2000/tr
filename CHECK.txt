@@ -121,3 +121,8 @@ def terminologiesGeneration(doc,application_name,application_description):
     # writeoncsv(csvpath,"Terminologies",str(terminlogies_response))
     df1 = pd.DataFrame.from_dict(terminlogies_response, orient='index')
     replace_table_with_df(doc, 1, df1)
+
+
+
+=IF(COUNTIF(B:B, A2) = 0, "Not in B", "")
+
