@@ -1,3 +1,53 @@
+def replace_table_with_df(doc, table_index, df):
+    # Access the table in the document
+    table = doc.tables[table_index]
+    font = table.style.font
+    font.name = FONT_NAME 
+    font.size = Pt(11)
+    list_term=[]
+    for i, row in df.iterrows():   
+        for j,value in enumerate(row):
+            # table_row = table.add_row().cells   
+            m=1
+            
+           
+
+            for keys in value: 
+                if m==1 and value[keys] in list_term:
+                    break 
+                # table_row[m].text = value[keys] 
+                if m==1:
+                    table_row = table.add_row().cells   
+                    # m=1
+                    # table_row[0].text = str(j+1)
+                    cell_paragraph1 = table_row[0].add_paragraph(str(j+1))
+                    cell_paragraph1.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                    cell_run1 = cell_paragraph1.runs[0]
+                    cell_run1.font.name = FONT_NAME
+                    cell_run1.font.size = Pt(11)
+                    cell_run1._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_NAME)
+                    list_term.append(value[keys])
+                    
+                cell_text = value[keys]
+                
+                cell_paragraph = table_row[m].add_paragraph(cell_text)
+                cell_paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                cell_run = cell_paragraph.runs[0]
+                cell_run.font.name = FONT_NAME
+                cell_run.font.size = Pt(11)
+                cell_run._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_NAME)
+                m+=1 
+    tblBorders = OxmlElement('w:tblBorders')
+    for border_type in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
+        border = OxmlElement(f'w:{border_type}')
+        border.set('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val', 'single')  # Set border style to single
+        border.set('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}sz', '4')  # Set border size to 4 half-points (2 points)
+        tblBorders.append(border)
+    tblProperties = table._element.find('w:tblPr', namespaces=table._element.nsmap)
+    tblProperties.append(tblBorders)
+
+
+
 def terminologiesGeneration(doc,application_name,application_description):
 
     # Section 2 
