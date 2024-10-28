@@ -1,3 +1,29 @@
+def find_and_group_java_files(root_path):
+    grouped_files = {}
+    for dirpath, dirnames, filenames in os.walk(root_path):
+        for filename in filenames:
+            if filename.endswith('.java'):
+                path = os.path.join(dirpath, filename)
+                if 'src\\main\\java' in path:
+                    relative_path = path.split('src\\main\\java')[-1].lstrip('\\')
+                    directory = os.path.dirname(relative_path)
+                    if directory not in grouped_files:
+                        grouped_files[directory] = []
+                    grouped_files[directory].append(os.path.basename(relative_path))
+                elif 'src/main/java' in path:
+                    relative_path = path.split('src/main/java')[-1].lstrip('/')
+                    directory = os.path.dirname(relative_path)
+                    if directory not in grouped_files:
+                        grouped_files[directory] = []
+                    grouped_files[directory].append(os.path.basename(relative_path))
+    
+    # Convert the grouped_files dictionary to a list of dictionaries
+    grouped_files_list = [{"package": key} for key, value in grouped_files.items()]
+    
+    return grouped_files_list
+
+
+
 def replace_table_with_df(doc, table_index, df):
     # Access the table in the document
     table = doc.tables[table_index]
