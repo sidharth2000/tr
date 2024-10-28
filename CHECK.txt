@@ -1,3 +1,23 @@
+def insert_into_nested_dict(root, path_parts):
+    if not path_parts:
+        return
+    
+    part = path_parts[0]
+    if part not in root:
+        root[part] = {}
+    
+    insert_into_nested_dict(root[part], path_parts[1:])
+
+def build_nested_structure(package_list):
+    root = {}
+    for package in package_list:
+        path_parts = package['package'].split('\\')
+        insert_into_nested_dict(root, path_parts)
+    return root
+
+
+
+
 def find_and_group_java_files(root_path):
     grouped_files = {}
     for dirpath, dirnames, filenames in os.walk(root_path):
