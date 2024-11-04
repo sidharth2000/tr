@@ -131,3 +131,16 @@ def terminologiesGeneration(doc,application_name,application_description):
     
     2. "purposeAndScope": This key should contain the purpose of the application, the scope and boundaries, assumptions and dependencies, and the document organization all together in short paragraph.
 
+
+
+picture=new_run.add_picture(image_path) 
+            
+            # picture.height=Inches(3)
+            image_height=(Image.open(image_path)).height/72
+            if image_height>7:
+                picture.height=Inches(7)
+            image_width=(Image.open(image_path)).width/72
+            if image_width>7:
+                picture.width=Inches(7)
+
+
