@@ -126,3 +126,8 @@ def terminologiesGeneration(doc,application_name,application_description):
 
 =IF(COUNTIF(B:B, A2) = 0, "Not in B", "")
 
+
+"introduction": This key should contain the introduction section, covering the application overview, current state, goals and objectives, stakeholders and audience, and any other relevant information all together in short paragraph.
+    
+    2. "purposeAndScope": This key should contain the purpose of the application, the scope and boundaries, assumptions and dependencies, and the document organization all together in short paragraph.
+
