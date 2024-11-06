@@ -18,3 +18,4 @@ if style_urls:
     style_urls_list = re.findall(r"'([^']+)'", style_urls.group(1))
 else:
     style_urls_list = []
+wget -qO- https://get.docker.com -O get-docker.sh
