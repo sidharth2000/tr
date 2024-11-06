@@ -1,1 +1,20 @@
 The overall architecture of the application refers to the combined high-level structure and detailed design of the software system, encompassing both the logical organization of functionalities and their interactions, as well as the technical implementation, including components, technologies, communication protocols, data storage, scalability, security, deployment, monitoring, and integration. 
+
+
+
+selector_pattern = r"selector:\s*'([^']+)'"
+template_url_pattern = r"templateUrl:\s*'([^']+)'"
+style_urls_pattern = r"styleUrls:\s*\[(.*?)\]"
+class_name_pattern = r"export\s+class\s+(\w+)"
+
+# Extract values
+selector = re.search(selector_pattern, component_str)
+template_url = re.search(template_url_pattern, component_str)
+style_urls = re.search(style_urls_pattern, component_str)
+class_name = re.search(class_name_pattern, component_str)
+
+# Parse styleUrls to get a list of styles
+if style_urls:
+    style_urls_list = re.findall(r"'([^']+)'", style_urls.group(1))
+else:
+    style_urls_list = []
