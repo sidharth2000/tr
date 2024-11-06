@@ -1,41 +1,9 @@
-import os
-from moviepy.video.io.VideoFileClip import VideoFileClip
+pattern = r"\{ path: '([^']*)',\s*component: (\w+)"
 
-def split_video_by_duration(video_path, chunk_duration=600):
-    """
-    Splits a video into multiple chunks of specified duration (in seconds)
-    and saves them in a 'splits' folder in the same directory as the original video.
+# Find all matches
+matches = re.findall(pattern, module_code)
 
-    Args:
-        video_path (str): Path to the input video file.
-        chunk_duration (int): Duration of each chunk in seconds (default is 600 seconds).
-    """
-    # Get the video file name and directory
-    video_dir, video_name = os.path.split(video_path)
-    base_name, ext = os.path.splitext(video_name)
+# Convert matches to a list of dictionaries
+routes = [{'path': match[0], 'component': match[1]} for match in matches]
 
-    # Create the splits folder in the same directory as the video
-    splits_dir = os.path.join(video_dir, "splits")
-    os.makedirs(splits_dir, exist_ok=True)
-
-    # Load the video
-    with VideoFileClip(video_path) as video:
-        video_duration = int(video.duration)
-        
-        # Split video into chunks
-        chunk_number = 1
-        for start_time in range(0, video_duration, chunk_duration):
-            end_time = min(start_time + chunk_duration, video_duration)
-            chunk = video.subclip(start_time, end_time)
-            
-            # Define output file name
-            output_file = os.path.join(splits_dir, f"{base_name}_{chunk_number}.mp4")
-            chunk.write_videofile(output_file, codec="libx264", audio_codec="aac")
-            print(f"Saved chunk: {output_file}")
-            
-            # Increment chunk number
-            chunk_number += 1
-
-# Example usage
-video_path = "path/to/your/video.mp4"  # Replace with your video path
-split_video_by_duration(video_path, chunk_duration=600)
+print(routes)
