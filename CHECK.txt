@@ -1,75 +1,264 @@
 import os
+
+import moviepy.editor as mp
+
 from moviepy.editor import VideoFileClip
-import cv2
+
+from moviepy.video.fx import all as vfx
+
+import whisper
+
+from PIL import Image
+
+import time
+
 import numpy as np
+ 
+# Initialize Whisper model
 
-def split_video_and_extract_keyframes(video_path):
-    # Create the output folder for splits
-    base_filename = os.path.splitext(os.path.basename(video_path))[0]
-    output_folder = f"{base_filename}_splits"
-    os.makedirs(output_folder, exist_ok=True)
-    
-    # Load the video
-    video = VideoFileClip(video_path)
-    duration = video.duration  # in seconds
-    split_duration = 10 * 60  # 10 minutes in seconds
-    
-    # Split video into 10-minute segments
-    segment_files = []
-    for i in range(0, int(duration), split_duration):
-        start_time = i
-        end_time = min(i + split_duration, duration)
-        split_filename = f"{base_filename}_{i // split_duration + 1}.mp4"
-        segment_files.append(os.path.join(output_folder, split_filename))
-        video.subclip(start_time, end_time).write_videofile(segment_files[-1], codec="libx264")
-    
-    # Function to extract keyframes and timestamps
-    def extract_keyframes_from_video(video_path):
-        cap = cv2.VideoCapture(video_path)
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        prev_frame = None
-        keyframes = []
-        timestamps = []
+model = whisper.load_model("base")
+ 
+def split_video_and_transcribe(video_file, segment_duration=600, screenshot_interval=60):
 
-        frame_count = 0
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
+    """
 
-            frame_count += 1
-            timestamp = frame_count / fps  # timestamp in seconds
+    Splits a video into 10-minute segments, captures screenshots, extracts audio, and transcribes the audio.
 
-            if prev_frame is not None:
-                # Compare the current frame with the previous one
-                diff = cv2.absdiff(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY))
-                non_zero_count = np.count_nonzero(diff)
+    :param video_file: Path to the .mp4 video file.
 
-                # If significant change is detected, treat this as a keyframe
-                if non_zero_count > 10000:  # You can adjust this threshold based on the video's content
-                    keyframes.append(frame)
-                    timestamps.append(timestamp)
-            
-            prev_frame = frame
-        
-        cap.release()
-        return keyframes, timestamps
+    :param segment_duration: Duration (in seconds) of each video segment.
 
-    # Iterate over splits and extract keyframes
-    all_keyframes = []
-    all_timestamps = []
-    
-    for segment_file in segment_files:
-        keyframes, timestamps = extract_keyframes_from_video(segment_file)
-        all_keyframes.extend(keyframes)
-        all_timestamps.extend(timestamps)
-        
-    # Save keyframes as images and print the timestamps
-    for idx, (keyframe, timestamp) in enumerate(zip(all_keyframes, all_timestamps)):
-        keyframe_filename = os.path.join(output_folder, f"keyframe_{idx+1}_{int(timestamp)}s.jpg")
-        cv2.imwrite(keyframe_filename, keyframe)
-        print(f"Keyframe {idx+1} at {timestamp} seconds saved as {keyframe_filename}")
+    :param screenshot_interval: Interval (in seconds) for taking screenshots.
 
-# Example usage
-video_path = "your_large_video.mp4"  # Replace with your video file path
-split_video_and_extract_keyframes(video_path)
+    """
+
+    # Create a directory for storing segment files and transcriptions
+
+    base_dir = "video_segments"
+
+    os.makedirs(base_dir, exist_ok=True)
+
+    video_clip = VideoFileClip(video_file)
+
+    video_duration = video_clip.duration  # total duration of the video in seconds
+
+    # Process video in segments
+
+    segment_index = 0
+
+    segment_info = []
+
+    for start_time in range(0, int(video_duration), segment_duration):
+
+        end_time = min(start_time + segment_duration, video_duration)
+
+        # Create a subclip for this segment
+
+        segment_clip = video_clip.subclip(start_time, end_time)
+
+        # Save the segment video
+
+        segment_filename = os.path.join(base_dir, f"segment_{segment_index + 1}.mp4")
+
+        segment_clip.write_videofile(segment_filename, codec="libx264", audio_codec="aac", threads=4)
+ 
+        # Capture screenshots and transcribe audio in this segment
+
+        screenshot_files = capture_screenshots(segment_clip, start_time, screenshot_interval)
+
+        transcriptions = transcribe_audio(segment_clip)
+
+        # Map transcription to screenshots
+
+        mapped_transcriptions = map_transcriptions_to_screenshots(screenshot_files, transcriptions, start_time)
+
+        # Store information for this segment
+
+        segment_info.append({
+
+            "segment_filename": segment_filename,
+
+            "screenshots": screenshot_files,
+
+            "transcription": mapped_transcriptions
+
+        })
+
+        segment_index += 1
+
+    return segment_info
+ 
+ 
+def capture_screenshots(segment_clip, start_time, interval):
+
+    """
+
+    Captures screenshots from the video segment at specified intervals.
+
+    :param segment_clip: The video segment clip.
+
+    :param start_time: The start time of the segment.
+
+    :param interval: The interval in seconds at which screenshots are captured.
+
+    :return: List of screenshot file paths and their corresponding timestamps.
+
+    """
+
+    screenshots = []
+
+    total_duration = segment_clip.duration  # Duration of the current segment
+
+    # Capture screenshots at the specified interval
+
+    for t in range(0, int(total_duration), interval):
+
+        screenshot_time = start_time + t
+
+        screenshot_image = segment_clip.get_frame(screenshot_time)
+
+        # Save the screenshot image
+
+        screenshot_filename = f"screenshot_{int(screenshot_time)}.png"
+
+        screenshot_path = os.path.join("screenshots", screenshot_filename)
+
+        os.makedirs(os.path.dirname(screenshot_path), exist_ok=True)
+
+        Image.fromarray(screenshot_image).save(screenshot_path)
+
+        screenshots.append({"file": screenshot_path, "timestamp": screenshot_time})
+
+    return screenshots
+ 
+ 
+def transcribe_audio(segment_clip):
+
+    """
+
+    Transcribes the audio from the video segment using Whisper.
+
+    :param segment_clip: The video segment clip.
+
+    :return: The transcription with timestamps for each audio segment.
+
+    """
+
+    # Extract audio from the video clip
+
+    audio = segment_clip.audio
+
+    audio_file = "temp_audio.wav"
+
+    audio.write_audiofile(audio_file, codec='pcm_s16le')
+
+    # Use Whisper to transcribe the audio
+
+    transcription_result = model.transcribe(audio_file)
+
+    # Clean up temporary audio file
+
+    os.remove(audio_file)
+
+    return transcription_result["segments"]  # Transcription segments with timestamps
+ 
+ 
+def map_transcriptions_to_screenshots(screenshot_files, transcription_segments, segment_start_time):
+
+    """
+
+    Maps transcription segments to their corresponding screenshots based on timestamps.
+
+    :param screenshot_files: List of screenshot file paths with timestamps.
+
+    :param transcription_segments: List of transcription segments with timestamps from Whisper.
+
+    :param segment_start_time: Start time of the current video segment.
+
+    :return: List of dictionaries mapping each screenshot to its corresponding transcription.
+
+    """
+
+    mapped_info = []
+
+    for screenshot in screenshot_files:
+
+        screenshot_timestamp = screenshot["timestamp"]
+
+        # Find the closest transcription segment by timestamp
+
+        closest_transcription = find_closest_transcription(screenshot_timestamp, transcription_segments)
+
+        print(f"Matching Screenshot at {screenshot_timestamp}s: {screenshot['file']} with Transcription: {closest_transcription['text'][:100]}...")  # Print first 100 characters of transcription
+
+        mapped_info.append({
+
+            "screenshot_file": screenshot["file"],
+
+            "screenshot_timestamp": screenshot_timestamp,
+
+            "transcription": closest_transcription["text"]
+
+        })
+
+    return mapped_info
+ 
+ 
+def find_closest_transcription(screenshot_timestamp, transcription_segments):
+
+    """
+
+    Finds the closest transcription segment to the screenshot timestamp.
+
+    :param screenshot_timestamp: Timestamp of the screenshot.
+
+    :param transcription_segments: List of transcription segments.
+
+    :return: The closest transcription segment.
+
+    """
+
+    closest_segment = None
+
+    min_diff = float('inf')
+
+    for segment in transcription_segments:
+
+        # Find the time difference between the screenshot and the transcription segment
+
+        diff = abs(screenshot_timestamp - segment["start"])
+
+        if diff < min_diff:
+
+            min_diff = diff
+
+            closest_segment = segment
+
+    return closest_segment
+ 
+ 
+if __name__ == "__main__":
+
+    video_file = "your_video.mp4"  # Replace with the path to your .mp4 video
+
+    segment_info = split_video_and_transcribe(video_file)
+
+    # Print out information for each segment
+
+    for idx, info in enumerate(segment_info):
+
+        print(f"\nSegment {idx + 1}:")
+
+        print(f"  Video File: {info['segment_filename']}")
+
+        print(f"  Screenshots: {info['screenshots']}")
+
+        print(f"  Mapped Transcriptions:")
+
+        for mapping in info["transcription"]:
+
+            print(f"    Screenshot {mapping['screenshot_file']} (at {mapping['screenshot_timestamp']}s) - {mapping['transcription'][:200]}...")  # Show first 200 characters of transcription
+
+        print()
+
+ 
