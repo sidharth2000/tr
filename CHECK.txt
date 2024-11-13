@@ -1,10 +1,6 @@
-data.sort(key=lambda x: x.timestamp.date())
-
-# Group by date
-grouped_data = {date: list(items) for date, items in groupby(data, key=lambda x: x.timestamp.date())}
-
-# Print the grouped data
-for date, items in grouped_data.items():
-    print(f"Date: {date}")
-    for item in items:
-        print(f"  ID: {item.id}, Timestamp: {item.timestamp}")
+getFormattedText(): string {
+    return this.rawText
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold formatting
+      .replace(/\n/g, '<br>')                           // Preserve newlines
+      .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');      // Convert tabs to spaces
+  }
