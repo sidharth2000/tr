@@ -1,6 +1,1 @@
-getFormattedText(): string {
-    return this.rawText
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold formatting
-      .replace(/\n/g, '<br>')                           // Preserve newlines
-      .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');      // Convert tabs to spaces
-  }
+.replace(/```(.*?)```/gs, '<pre><code>$1</code></pre>')
