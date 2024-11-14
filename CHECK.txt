@@ -1,1 +1,1 @@
-.replace(/```(.*?)```/gs, '<pre><code>$1</code></pre>')
+.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
