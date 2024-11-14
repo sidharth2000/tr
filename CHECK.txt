@@ -1,22 +1,10 @@
-ngAfterViewInit() {
-    // Add event listener for the copy buttons after the view is initialized
-    const copyButtons = document.querySelectorAll('.copy-button');
-    copyButtons.forEach(button => {
-      button.addEventListener('click', this.copyToClipboard);
-    });
-  }
+ @ViewChild('scrollableDiv') private scrollableDiv: ElementRef;
 
-  // Copy to clipboard function
-  copyToClipboard(event: Event): void {
-    const button = event.target as HTMLButtonElement;
-    const codeBlock = button.nextElementSibling as HTMLElement;
-    const codeText = codeBlock.innerText;
+  // Sample content
+  items = Array.from({ length: 20 }, (_, i) => `Item ${i + 1}`);
 
-    navigator.clipboard.writeText(codeText)
-      .then(() => {
-        alert('Code copied to clipboard!');
-      })
-      .catch(err => {
-        console.error('Failed to copy text: ', err);
-      });
+  // Scroll to the bottom method
+  scrollToBottom(): void {
+    const div = this.scrollableDiv.nativeElement;
+    div.scrollTop = div.scrollHeight;
   }
