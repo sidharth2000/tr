@@ -1,1 +1,11 @@
-.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+.replace(/```([\s\S]*?)```/g, (match, code) => {
+      const escapedCode = code
+        .replace(/&/g, '&amp;')   // Escape &
+        .replace(/</g, '&lt;')    // Escape <
+        .replace(/>/g, '&gt;');   // Escape >
+      return `
+        <div class="code-container">
+          <button data-copy-code="true">Copy</button>
+          <pre><code>${escapedCode}</code></pre>
+        </div>`;
+    })
