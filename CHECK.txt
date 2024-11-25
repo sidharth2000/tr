@@ -1,14 +1,5 @@
-SELECT 
-    DATE(s.created_at) AS session_date,
-    COUNT(DISTINCT s.username) AS total_unique_users,
-    COUNT(sh.history_id) AS total_queries
-FROM 
-    session s
-JOIN 
-    session_history sh ON s.session_id = sh.session_id
-WHERE 
-    sh.user_type = 'user'
-GROUP BY 
-    DATE(s.created_at)
-ORDER BY 
-    session_date;
+prefix=/apps/opt/application/npm
+cache=/apps/opt/application/npm/cache
+loglevel=verbose
+log=/apps/opt/application/npm/npm-log.txt
+
