@@ -1,5 +1,4 @@
-prefix=/apps/opt/application/npm
-cache=/apps/opt/application/npm/cache
-loglevel=verbose
-log=/apps/opt/application/npm/npm-log.txt
+sudo yum remove nodejs
 
+curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+sudo yum install nodejs
