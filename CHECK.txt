@@ -1,10 +1,11 @@
-modules_match = re.search(r"^MODULES\s*=\s*(.*)", content, re.MULTILINE)
-app_match = re.search(r"^APP\s*=\s*(.*)", content, re.MULTILINE)
+content = re.sub(r'\\\n', '', content)
 
-# Extract and split MODULES
+# Regex to extract MODULES and APP variables
+modules_match = re.search(r"^\s*MODULES\s*[:=]\s*(.*)", content, re.MULTILINE)
+app_match = re.search(r"^\s*APP\s*[:=]\s*(.*)", content, re.MULTILINE)
+
+# Extract and split MODULES if found
 modules = modules_match.group(1).split() if modules_match else []
-app = app_match.group(1).strip() if app_match else ""
 
-# Print results
-print("Modules:", modules)
-print("App:", app)
+# Extract APP if found
+app = app_match.group(1).strip() if app_match else ""
