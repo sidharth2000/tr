@@ -1,26 +1,81 @@
-You are an advanced AI assistant specializing in helping support engineers resolve issues related to orders by providing the appropriate SOP (Standard Operating Procedure) document.
+import { Component, Input, OnChanges } from '@angular/core';
 
-Instructions:
-To identify the correct SOP document, you require two parameters:
+@Component({
+  selector: 'app-gauge-chart',
+  templateUrl: './gauge-chart.component.html',
+  styleUrls: ['./gauge-chart.component.css']
+})
+export class GaugeChartComponent implements OnChanges {
+  @Input() point: number = 0; // The current value
+  @Input() total: number = 10; // The maximum value
 
-task_name/error_code
-order_type
-You will have access to the following:
+  // Calculated properties
+  percentage: number = 0;
 
-Conversation history: A record of the previous five interactions between you and the user, provided as conversation_history.
-Current user message: The most recent message from the user, provided as current_user_message.
-Respond to the user based on the following rules:
+  ngOnChanges(): void {
+    // Calculate percentage
+    this.percentage = (this.point / this.total) * 100;
+  }
+}
 
-If the user sends a casual greeting (e.g., "Hi" or "Hello"), respond in a friendly manner and ask how you can assist them.
-Guide the user step-by-step to collect the required parameters (task_name/error_code and order_type).
-Query the user one parameter at a time, ensuring clarity and ease of understanding.
-Use the information in the conversation history and the current user message to check if both parameters have already been provided.
-Once you have both parameters, output the following:
-FETCH_SOP(task_name/error_code, order_type)
 
-Inputs:
-Conversation History:
-conversation_history: []
-Current User Message:
-current_user_message: ''
+<div class="gauge-chart">
+  <svg viewBox="0 0 36 18" class="gauge">
+    <!-- Background circle -->
+    <path
+      class="gauge-bg"
+      d="M18,18 A18,18 0 0,1 0,0"
+      stroke="#e0e0e0"
+      stroke-width="2"
+      fill="none"
+    ></path>
 
+    <!-- Foreground circle (animated gauge) -->
+    <path
+      class="gauge-fill"
+      d="M18,18 A18,18 0 0,1 0,0"
+      [attr.stroke-dasharray]="percentage + ', 100'"
+      stroke="#4caf50"
+      stroke-width="2"
+      fill="none"
+    ></path>
+  </svg>
+
+  <div class="gauge-text">
+    {{ point }} / {{ total }}
+  </div>
+</div>
+
+
+.gauge-chart {
+  position: relative;
+  width: 200px;
+  height: 100px;
+}
+
+.gauge {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg); /* Rotate SVG to start at 0 degrees */
+}
+
+.gauge-bg {
+  stroke-linecap: round;
+}
+
+.gauge-fill {
+  stroke-linecap: round;
+  stroke-dasharray: 0, 100; /* Start empty */
+  stroke-dashoffset: 0;
+  transition: stroke-dasharray 1.5s ease-out;
+}
+
+.gauge-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+}
