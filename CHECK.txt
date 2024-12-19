@@ -1,60 +1,16 @@
-.gauge-chart {
-  position: relative;
-  width: 100%; /* Fill parent container */
-  height: 50%; /* Half of the width for semi-circle */
-  overflow: hidden; /* Hide the bottom part of the circle */
-}
+python
+import clang.cindex
 
-.gauge {
-  width: 100%; /* Fully scalable */
-  height: 200%; /* Twice the height for a complete circle */
-  transform: rotate(-90deg); /* Start the gauge at the leftmost point */
-}
+def visit_node(node):
+    if node.kind.is_declaration() and node.kind.is_function():
+        print("Function Name:", node.spelling)
+        print("Line Number:", node.location.line)
 
-.gauge-bg {
-  stroke: #e0e0e0; /* Light background for the full arc */
-  stroke-width: 5%; /* Make the stroke responsive */
-}
+    for child in node.get_children():
+        visit_node(child)
 
-.gauge-fill {
-  stroke: violet; /* Violet color for the gauge */
-  stroke-width: 5%; /* Same width as the background */
-  stroke-linecap: round; /* Smooth rounded edges */
-  stroke-dasharray: 0, 100; /* Start empty */
-  stroke-dashoffset: 0;
-  transition: stroke-dasharray 1.5s ease-out; /* Smooth fill animation */
-}
+index = clang.cindex.Index.create()
+translation_unit = index.parse("your_source_file.c")
 
-.gauge-text {
-  position: absolute;
-  top: 90%; /* Position the text below the arc */
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.2rem; /* Adjust size for responsiveness */
-  font-weight: bold;
-  text-align: center;
-  color: #4a4a4a; /* A neutral text color */
-}
-
-
-<div class="gauge-chart">
-  <svg viewBox="0 0 36 36" class="gauge">
-    <!-- Background circle -->
-    <path
-      class="gauge-bg"
-      d="M18,18 A18,18 0 0,1 0,18"
-    ></path>
-
-    <!-- Foreground (animated gauge) -->
-    <path
-      class="gauge-fill"
-      d="M18,18 A18,18 0 0,1 0,18"
-      [attr.stroke-dasharray]="percentage + ', 100'"
-    ></path>
-  </svg>
-
-  <!-- Positioned under the arc -->
-  <div class="gauge-text">
-    {{ point }} / {{ total }}
-  </div>
-</div>
+for node in translation_unit.cursor.get_children():
+    visit_node(node)
