@@ -1,16 +1,14 @@
-python
-import clang.cindex
+# Define the regex pattern for function declarations
+    pattern = r'^\s*([a-zA-Z_][a-zA-Z0-9_]*\s+)+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*{?'
 
-def visit_node(node):
-    if node.kind.is_declaration() and node.kind.is_function():
-        print("Function Name:", node.spelling)
-        print("Line Number:", node.location.line)
+    # Split the code into lines
+    lines = cpp_code.strip().splitlines()
 
-    for child in node.get_children():
-        visit_node(child)
-
-index = clang.cindex.Index.create()
-translation_unit = index.parse("your_source_file.c")
-
-for node in translation_unit.cursor.get_children():
-    visit_node(node)
+    for line in lines:
+        match = re.match(pattern, line)
+        if match:
+            return_type = match.group(1).strip()
+            function_name = match.group(2)
+            arguments = match.group(3).strip()
+            arg_list = [arg.strip() for arg in arguments.split(',')] if arguments else []
+            print(f"Function Name: {function_name}, Arguments: {arg_list}")
