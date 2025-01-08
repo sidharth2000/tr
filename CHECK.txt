@@ -1,14 +1,9 @@
-# Define the regex pattern for function declarations
-    pattern = r'^\s*([a-zA-Z_][a-zA-Z0-9_]*\s+)+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*{?'
+pattern = r'(\w+)\.(\w+)\(([^)]*)\)'
 
-    # Split the code into lines
-    lines = cpp_code.strip().splitlines()
+# Find all matches in the C++ code
+matches = re.findall(pattern, cpp_code)
 
-    for line in lines:
-        match = re.match(pattern, line)
-        if match:
-            return_type = match.group(1).strip()
-            function_name = match.group(2)
-            arguments = match.group(3).strip()
-            arg_list = [arg.strip() for arg in arguments.split(',')] if arguments else []
-            print(f"Function Name: {function_name}, Arguments: {arg_list}")
+# Process and print the results
+for match in matches:
+    objname, funcname, arglist = match
+    print(f"Object Name: {objname}, Function Name: {funcname}, Argument List: {arglist}")
