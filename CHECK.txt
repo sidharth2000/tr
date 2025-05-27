@@ -1,60 +1,69 @@
-from sqlalchemy import Column, Integer, Text, JSON
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
-
-class FuzeUserEducationIssue(Base):
-    __tablename__ = 'fuze_user_education_issues'
-
-    issue_id = Column(Integer, primary_key=True, autoincrement=True)
-    module = Column(Text)
-    issue_name = Column(Text)
-    issue_understanding = Column(Text)
-    issue_resolution = Column(Text)
-    keywords = Column(JSON)
-
-
-import pandas as pd
-from sqlalchemy import create_engine, text
+import spacy
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from model import FuzeUserEducationIssue, Base  # Assumes model is saved in model.py
+from model import FuzeUserEducationIssue  # your SQLAlchemy model
 
 # ---------- CONFIG ----------
-EXCEL_PATH = "issues.xlsx"  # Replace with your actual path
-DATABASE_URL = "postgresql://username:password@localhost/dbname"  # Update with your DB credentials
+DATABASE_URL = "postgresql://username:password@localhost/dbname"  # Update this
+TOP_N = 3
 # ----------------------------
 
-# Step 1: Read Excel
-df = pd.read_excel(EXCEL_PATH)
+# Load spaCy medium model with word vectors
+nlp = spacy.load("en_core_web_md")
 
-# Step 2: Convert comma-separated keywords to JSON list
-df['keywords'] = df['keywords'].fillna('').apply(
-    lambda x: [kw.strip() for kw in str(x).split(',')] if x else []
-)
-
-# Step 3: Set up SQLAlchemy
+# Connect to DB and fetch issues
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
-
-# Step 4: Truncate table
-with engine.connect() as conn:
-    conn.execute(text('TRUNCATE TABLE fuze_user_education_issues RESTART IDENTITY'))
-
-# Step 5: Insert all rows
-issues = [
-    FuzeUserEducationIssue(
-        module=row['module'],
-        issue_name=row['issue_name'],
-        issue_understanding=row['issue_understanding'],
-        issue_resolution=row['issue_resolution'],
-        keywords=row['keywords']
-    )
-    for _, row in df.iterrows()
-]
-
-session.add_all(issues)
-session.commit()
+issues = session.query(FuzeUserEducationIssue).all()
 session.close()
 
-print("✅ Table successfully updated with data from Excel.")
+def score_match_spacy(description: str, keywords: list[str]) -> float:
+    if not keywords:
+        return 0.0
+
+    desc_doc = nlp(description.lower())
+    exact_matches = 0
+    semantic_scores = []
+
+    for kw in keywords:
+        kw = kw.lower()
+        if kw in description.lower():
+            exact_matches += 1
+            semantic_scores.append(1.0)  # exact match boost
+        else:
+            kw_doc = nlp(kw)
+            sim = desc_doc.similarity(kw_doc)
+            semantic_scores.append(sim)
+
+    exact_score = exact_matches / len(keywords)
+    avg_semantic = sum(semantic_scores) / len(semantic_scores)
+    final_score = round(0.5 * exact_score + 0.5 * avg_semantic, 4)
+    return final_score
+
+def find_top_matches(description: str):
+    results = []
+
+    for issue in issues:
+        keywords = issue.keywords or []
+        score = score_match_spacy(description, keywords)
+        results.append({
+            'issue_id': issue.issue_id,
+            'issue_name': issue.issue_name,
+            'module': issue.module,
+            'score': score
+        })
+
+    results.sort(key=lambda x: x['score'], reverse=True)
+    return results[:TOP_N]
+
+# ----------- Example Usage -----------
+if __name__ == "__main__":
+    ticket = {
+        "description": "Please change the budget code for this report"
+    }
+
+    top_matches = find_top_matches(ticket['description'])
+    for match in top_matches:
+        print(f"Issue ID: {match['issue_id']} | Score: {match['score']}")
+        print(f"  Name: {match['issue_name']} | Module: {match['module']}")
