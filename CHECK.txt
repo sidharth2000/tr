@@ -1,12 +1,60 @@
-table :
+from sqlalchemy import Column, Integer, Text, JSON
+from sqlalchemy.ext.declarative import declarative_base
 
-CREATE TABLE fuze_user_education_issues (
-    issue_id SERIAL PRIMARY KEY,
-    module TEXT,
-    issue_name TEXT,
-    issue_understanding TEXT,
-    issue_resolution TEXT,
-    keywords JSON
-);
+Base = declarative_base()
+
+class FuzeUserEducationIssue(Base):
+    __tablename__ = 'fuze_user_education_issues'
+
+    issue_id = Column(Integer, primary_key=True, autoincrement=True)
+    module = Column(Text)
+    issue_name = Column(Text)
+    issue_understanding = Column(Text)
+    issue_resolution = Column(Text)
+    keywords = Column(JSON)
 
 
+import pandas as pd
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from model import FuzeUserEducationIssue, Base  # Assumes model is saved in model.py
+
+# ---------- CONFIG ----------
+EXCEL_PATH = "issues.xlsx"  # Replace with your actual path
+DATABASE_URL = "postgresql://username:password@localhost/dbname"  # Update with your DB credentials
+# ----------------------------
+
+# Step 1: Read Excel
+df = pd.read_excel(EXCEL_PATH)
+
+# Step 2: Convert comma-separated keywords to JSON list
+df['keywords'] = df['keywords'].fillna('').apply(
+    lambda x: [kw.strip() for kw in str(x).split(',')] if x else []
+)
+
+# Step 3: Set up SQLAlchemy
+engine = create_engine(DATABASE_URL)
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# Step 4: Truncate table
+with engine.connect() as conn:
+    conn.execute(text('TRUNCATE TABLE fuze_user_education_issues RESTART IDENTITY'))
+
+# Step 5: Insert all rows
+issues = [
+    FuzeUserEducationIssue(
+        module=row['module'],
+        issue_name=row['issue_name'],
+        issue_understanding=row['issue_understanding'],
+        issue_resolution=row['issue_resolution'],
+        keywords=row['keywords']
+    )
+    for _, row in df.iterrows()
+]
+
+session.add_all(issues)
+session.commit()
+session.close()
+
+print("✅ Table successfully updated with data from Excel.")
