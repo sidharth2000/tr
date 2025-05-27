@@ -1,15 +1,16 @@
-import spacy
+import torch
+from sentence_transformers import SentenceTransformer
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from model import FuzeUserEducationIssue  # your SQLAlchemy model
+from model import FuzeUserEducationIssue  # assuming your SQLAlchemy model is in model.py
 
 # ---------- CONFIG ----------
-DATABASE_URL = "postgresql://username:password@localhost/dbname"  # Update this
+DATABASE_URL = "postgresql://username:password@localhost/dbname"  # update this
 TOP_N = 3
 # ----------------------------
 
-# Load spaCy medium model with word vectors
-nlp = spacy.load("en_core_web_md")
+# Load model for semantic embeddings
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Connect to DB and fetch issues
 engine = create_engine(DATABASE_URL)
@@ -18,35 +19,38 @@ session = Session()
 issues = session.query(FuzeUserEducationIssue).all()
 session.close()
 
-def score_match_spacy(description: str, keywords: list[str]) -> float:
-    if not keywords:
-        return 0.0
+def score_match(description: str, keywords: list[str]) -> float:
+    description = description.lower()
+    desc_emb = model.encode(description, convert_to_tensor=True)
 
-    desc_doc = nlp(description.lower())
     exact_matches = 0
     semantic_scores = []
 
     for kw in keywords:
         kw = kw.lower()
-        if kw in description.lower():
+        if kw in description:
             exact_matches += 1
-            semantic_scores.append(1.0)  # exact match boost
+            semantic_scores.append(1.0)  # perfect match
         else:
-            kw_doc = nlp(kw)
-            sim = desc_doc.similarity(kw_doc)
+            kw_emb = model.encode(kw, convert_to_tensor=True)
+            sim = torch.nn.functional.cosine_similarity(desc_emb, kw_emb, dim=0).item()
             semantic_scores.append(sim)
 
+    if not keywords:
+        return 0.0
+
+    # Scoring formula:
     exact_score = exact_matches / len(keywords)
-    avg_semantic = sum(semantic_scores) / len(semantic_scores)
-    final_score = round(0.5 * exact_score + 0.5 * avg_semantic, 4)
-    return final_score
+    avg_semantic_score = sum(semantic_scores) / len(semantic_scores)
+    final_score = 0.5 * exact_score + 0.5 * avg_semantic_score
+    return round(final_score, 4)
 
 def find_top_matches(description: str):
     results = []
 
     for issue in issues:
         keywords = issue.keywords or []
-        score = score_match_spacy(description, keywords)
+        score = score_match(description, keywords)
         results.append({
             'issue_id': issue.issue_id,
             'issue_name': issue.issue_name,
@@ -54,6 +58,7 @@ def find_top_matches(description: str):
             'score': score
         })
 
+    # Sort and return top N
     results.sort(key=lambda x: x['score'], reverse=True)
     return results[:TOP_N]
 
