@@ -1,47 +1,48 @@
-import spacy
-from sklearn.metrics.pairwise import cosine_similarity
+from pymilvus import Collection, connections
+from sentence_transformers import SentenceTransformer
 import numpy as np
 
-# Load transformer model
-nlp = spacy.load("en_core_web_trf")
+# --- Connect to Milvus ---
+connections.connect("default", host="localhost", port="19530")  # adjust host/port if needed
 
-# Sample categories
-categories = [
-    "Login Issue",
-    "Payment Failure",
-    "Password Reset",
-    "Account Locked",
-    "Subscription Cancellation",
-    "App Crash",
-    "Slow Performance",
-    "UI Bug",
-    "Feature Request",
-    "Billing Query"
-]
+# --- Load SentenceTransformer Model ---
+model = SentenceTransformer('all-MiniLM-L6-v2')  # returns 768-d embeddings
 
-# Sample ticket description
-ticket_descriptions = [
-    "I'm unable to sign into my account using my email",
-    "App is freezing whenever I open the dashboard",
-    "Need to stop my monthly charges",
-    "Can't remember my password",
-    "Charged twice for the same subscription"
-]
+# --- Define collection and vector field ---
+collection_name = "your_collection_name"
+vector_field = "issue_description_vector"
 
-# Convert category headers to spaCy docs and extract vector
-category_docs = [nlp(cat) for cat in categories]
-category_vectors = np.array([doc.vector for doc in category_docs])
+# --- Load Collection ---
+collection = Collection(collection_name)
 
-for ticket in ticket_descriptions:
-    ticket_doc = nlp(ticket)
-    ticket_vector = ticket_doc.vector.reshape(1, -1)
-    
-    # Calculate cosine similarities
-    sims = cosine_similarity(ticket_vector, category_vectors).flatten()
-    
-    # Get top 5 categories
-    top5_indices = sims.argsort()[-5:][::-1]
-    print(f"\nTicket: '{ticket}'")
-    print("Top 5 matching categories:")
-    for i in top5_indices:
-        print(f"  - {categories[i]} (score: {sims[i]:.4f})")
+# --- Ensure collection is loaded into memory ---
+collection.load()
+
+# --- Semantic Search Function ---
+def semantic_search(query_text: str, top_k: int = 4):
+    # Encode the query
+    query_vector = model.encode(query_text).tolist()
+
+    # Perform search
+    results = collection.search(
+        data=[query_vector],
+        anns_field=vector_field,
+        param={"metric_type": "COSINE", "params": {"nprobe": 10}},
+        limit=top_k,
+        output_fields=["issue_description"]
+    )
+
+    # Extract and format top results
+    matches = []
+    for hit in results[0]:
+        matches.append({
+            "issue": hit.entity.get("issue_description"),
+            "score": round(hit.distance, 4)
+        })
+
+    return matches
+
+# --- Example Usage ---
+query = "App crashes when logging in"
+top_matches = semantic_search(query)
+print(top_matches)
