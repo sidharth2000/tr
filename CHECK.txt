@@ -1,48 +1,16 @@
-from pymilvus import Collection, connections
-from sentence_transformers import SentenceTransformer
-import numpy as np
+import os
+import pandas as pd
 
-# --- Connect to Milvus ---
-connections.connect("default", host="localhost", port="19530")  # adjust host/port if needed
+# Folder containing the CSV files
+folder_path = 'path_to_your_csv_files'  # Replace with your folder path
 
-# --- Load SentenceTransformer Model ---
-model = SentenceTransformer('all-MiniLM-L6-v2')  # returns 768-d embeddings
+# Get a list of all CSV files in the folder
+csv_files = [f for f in os.listdir(folder_path) if f.endswith('.csv')]
 
-# --- Define collection and vector field ---
-collection_name = "your_collection_name"
-vector_field = "issue_description_vector"
+# Read and concatenate all CSV files
+combined_df = pd.concat([pd.read_csv(os.path.join(folder_path, f)) for f in csv_files], ignore_index=True)
 
-# --- Load Collection ---
-collection = Collection(collection_name)
+# Save the combined DataFrame to a new CSV file
+combined_df.to_csv('combined_output.csv', index=False)
 
-# --- Ensure collection is loaded into memory ---
-collection.load()
-
-# --- Semantic Search Function ---
-def semantic_search(query_text: str, top_k: int = 4):
-    # Encode the query
-    query_vector = model.encode(query_text).tolist()
-
-    # Perform search
-    results = collection.search(
-        data=[query_vector],
-        anns_field=vector_field,
-        param={"metric_type": "COSINE", "params": {"nprobe": 10}},
-        limit=top_k,
-        output_fields=["issue_description"]
-    )
-
-    # Extract and format top results
-    matches = []
-    for hit in results[0]:
-        matches.append({
-            "issue": hit.entity.get("issue_description"),
-            "score": round(hit.distance, 4)
-        })
-
-    return matches
-
-# --- Example Usage ---
-query = "App crashes when logging in"
-top_matches = semantic_search(query)
-print(top_matches)
+print(f"Combined {len(csv_files)} files into 'combined_output.csv'")
