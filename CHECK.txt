@@ -2,15 +2,21 @@ import os
 import pandas as pd
 
 # Folder containing the CSV files
-folder_path = 'path_to_your_csv_files'  # Replace with your folder path
+folder_path = 'path_to_your_csv_files'  # Replace with your actual folder path
 
 # Get a list of all CSV files in the folder
 csv_files = [f for f in os.listdir(folder_path) if f.endswith('.csv')]
 
 # Read and concatenate all CSV files
-combined_df = pd.concat([pd.read_csv(os.path.join(folder_path, f)) for f in csv_files], ignore_index=True)
+combined_df = pd.concat(
+    [pd.read_csv(os.path.join(folder_path, f)) for f in csv_files],
+    ignore_index=True
+)
 
-# Save the combined DataFrame to a new CSV file
-combined_df.to_csv('combined_output.csv', index=False)
+# Drop duplicate incident_number values, keeping the first occurrence
+combined_df = combined_df.drop_duplicates(subset='incident_number')
 
-print(f"Combined {len(csv_files)} files into 'combined_output.csv'")
+# Save the cleaned DataFrame to a new CSV file
+combined_df.to_csv('combined_unique_incidents.csv', index=False)
+
+print(f"Combined {len(csv_files)} files into 'combined_unique_incidents.csv' with {len(combined_df)} unique incident numbers.")
