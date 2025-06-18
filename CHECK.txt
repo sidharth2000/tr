@@ -1,1 +1,50 @@
-https://apps.fcc.gov/kdb/GetAttachment.html?id=zn%2BserLu8yYjc5InWoYVTg%3D%3D&desc=953436%20D01%20OET%20Laboratory%20Services%20API%20v03&tracking_number=50070
+import base64
+import requests
+
+def upload_excel_to_gitlab(
+    excel_file_path: str,
+    gitlab_token: str,
+    project_id: str,
+    target_branch: str,
+    target_folder: str,
+    commit_message: str,
+    gitlab_url: str = "https://gitlab.com"
+):
+    # Read and encode the Excel file
+    with open(excel_file_path, "rb") as f:
+        file_content = base64.b64encode(f.read()).decode()
+
+    # Extract filename from the path
+    filename = excel_file_path.split("/")[-1]
+
+    # Final path in repo: e.g., data/myfile.xlsx
+    file_path_in_repo = f"{target_folder.rstrip('/')}/{filename}"
+
+    # API endpoint
+    api_url = f"{gitlab_url}/api/v4/projects/{project_id}/repository/files/{file_path_in_repo.replace('/', '%2F')}"
+
+    headers = {
+        "PRIVATE-TOKEN": gitlab_token
+    }
+
+    # Prepare data payload
+    data = {
+        "branch": target_branch,
+        "content": base64.b64decode(file_content).decode('ISO-8859-1'),  # raw content (decoded for correct byte handling)
+        "commit_message": commit_message,
+        "encoding": "text"  # force text mode; GitLab treats raw binary differently
+    }
+
+    # Check if file already exists to decide PUT (update) or POST (create)
+    get_url = f"{api_url}?ref={target_branch}"
+    exists = requests.get(get_url, headers=headers)
+
+    if exists.status_code == 200:
+        response = requests.put(api_url, headers=headers, data=data)
+    else:
+        response = requests.post(api_url, headers=headers, data=data)
+
+    if response.status_code in (200, 201):
+        print(f"✅ File uploaded to: {file_path_in_repo}")
+    else:
+        print(f"❌ Failed to upload. Status: {response.status_code}, Error: {response.text}")
